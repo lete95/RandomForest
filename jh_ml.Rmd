@@ -1,0 +1,118 @@
+---
+title: "John Hopkins Coursera, Practical ML"
+author: "PolSerra"
+date: "11 May 2018"
+output: html_document
+---
+
+## Summary
+
+This work is performed as the final assignment of the 8th week (Machine Learning topic) inside the framework of the Johns Hopkins University Data Science Specialization course.
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, our goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har.
+
+## Data
+
+The training data for this project is available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data is available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
+
+## Goals of the project
+
+The goal of this project is to predict the manner in which participants did the exercise. This is the "classe" variable in the training set. This report describes how the model was built, how the cross validation was used, the expected error, and other specifications. Furthermore, the prediction model is used to predict 20 different test cases at the end.
+
+## Practical Work
+
+### Loading data
+
+We load the data, and eliminate first variable regarding the name of the participant, as we do not want it to have any type of impact in the prediction.
+
+```{r pressure1, echo=TRUE}
+set.seed(1232018321)
+
+require(caret)
+require(randomForest)
+
+pml_training_data = read.table("pml-training.csv", 
+                               header = TRUE, sep = ",", 
+                               na.strings = c("NA", "#DIV/0!"))
+
+pml_training_data <- pml_training_data[c(-1)]
+
+dim(pml_training_data)
+```
+
+### Elimination of unnecessary variables 
+
+After checking the other continuous variables, we discard the ones that do not provide information about the realization of the exercise, or the ones that are full of NAs.
+
+```{r pressure2, echo=TRUE}
+sensorColumns = grep(pattern = "_belt|_arm|_dumbbell|_forearm", names(pml_training_data))
+
+data = pml_training_data[, c(sensorColumns,159)]
+ 
+dim(data)
+  
+missingData = is.na(data)
+
+omitColumns = which(colSums(missingData) > 1000)
+
+data = data[, -omitColumns]
+
+dim(data)
+```
+
+As it is observed, now the data set only contains continuous variables that do not have NA's, plus the variables that we want to predict 'classe'.
+
+### Creating partitions
+
+Partitions are created as it is seen in class.
+
+```{r pressure3, echo=TRUE}
+
+inTrain <- createDataPartition(y=data$classe, p=0.6, list=FALSE)
+
+data.Training <- data[inTrain, ]; 
+
+data.Testing <- data[-inTrain, ]
+
+```
+
+### Training set
+
+Random Forest is used to fit the predictor in the training set. It may take a time.
+
+```{r pressure4, echo=TRUE}
+
+res.Forest = randomForest(classe~., data=data.Training, ntree = 500)
+
+```
+
+### Model testing and performance
+
+Once the predictor is fit, it is the time to use it in order to try to predict 'classe' in the testing dataset. After doing so, confusionMatrix fuction is used to measure the performance of the predictor. Besides, the function varImpPlot, shows the importance of each variable in the prediction.
+
+```{r pressure5, echo=TRUE}
+
+prediction.Testing = predict(res.Forest, newdata = data.Testing)
+
+confusionMatrix(prediction.Testing, data.Testing$classe)
+
+varImpPlot(res.Forest)
+
+```
+
+If we take the Kappa indicator as a Key Performance Indicator, out of sample error seems to be very low. Thus, our prediction model seems to be accurate in this particular case. As we can observe, both sensitivity and specificity seem to be very high.
+
+
+
+
+
+
+
